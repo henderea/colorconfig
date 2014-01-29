@@ -1,0 +1,1 @@
+require 'colorconfig/version'
