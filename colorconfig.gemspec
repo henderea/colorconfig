@@ -23,4 +23,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'rake', '~> 10.0'
 
   spec.add_dependency 'everyday-cli-utils', '>= 1.1.0'
+  spec.add_dependency 'mvn2', '>= 2.0.0'
 end
