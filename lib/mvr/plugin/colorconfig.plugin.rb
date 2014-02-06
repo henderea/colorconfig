@@ -4,7 +4,7 @@ class ColorConfigPlugin
   extend Plugin
   extend PluginType
 
-  CONFIG_FILE = File.expand_path('~/mvn2-colors.yaml')
+  CONFIG_FILE = File.expand_path('~/mvr-colors.yaml')
 
   register :option, sym: :override_colors, names: %w(-v --override-colors), desc: 'override the colors with the ones configured by the colorconfig script'
 
