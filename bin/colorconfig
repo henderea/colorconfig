@@ -7,65 +7,83 @@ require 'everyday-cli-utils'
 include EverydayCliUtils
 import :maputil, :ask
 
-config_files = {
-    mvn2: '~/mvn2-colors.yaml',
-    mvr:  '~/mvr-colors.yaml',
+Signal.trap('SIGINT') {
+  Process.waitall
+  puts
+  exit 1
 }
 
+def check_has_config(name)
+  begin
+    require name
+    true
+  rescue LoadError => e
+    # puts e
+    # puts e.backtrace.join("\n")
+    false
+  end
+end
+
+config_files = {}
+if check_has_config('mvn2')
+  config_files[:mvn2] = '~/mvn2-colors.yaml'
+else
+  puts 'mvn2 gem not installed.'
+end
+if check_has_config('mvr')
+  config_files[:mvr] = '~/mvr-colors.yaml'
+else
+  puts 'mvr gem not installed.'
+end
+
 default_options = {
-    mvn2: {
-        time:    {
-            fg: :green,
-            bg: :none,
-        },
-        percent: {
-            fg: :purple,
-            bg: :none,
-        },
-        average: {
-            fg: :cyan,
-            bg: :none,
-        },
+  mvn2: {
+    time: {
+      fg: :green,
+      bg: :none
     },
-    mvr:  {
-        normal:   {
-            fg: :none,
-            bg: :none,
-        },
-        same:     {
-            fg: :black,
-            bg: :white,
-        },
-        conflict: {
-            fg: :white,
-            bg: :red,
-        },
+    percent: {
+      fg: :purple,
+      bg: :none
     },
+    average: {
+      fg: :cyan,
+      bg: :none
+    }
+  },
+  mvr: {
+    normal: {
+      fg: :none,
+      bg: :none
+    },
+    same: {
+      fg: :black,
+      bg: :white
+    },
+    conflict: {
+      fg: :white,
+      bg: :red
+    }
+  }
 }
 
 colors = [:black, :red, :green, :yellow, :blue, :purple, :cyan, :white, :none]
 
-while true
-
-  Ask::ask('Which script do you want to configure colors for?', [:mvn2, :mvr, :Exit]) { |script|
-    if script == :Exit
-      exit(0)
-    end
+loop do
+  Ask.ask('Which script do you want to configure colors for?', Ask.hash_to_options(config_files, [:Exit])) { |script|
+    exit(0) if script == :Exit
 
     config_file = File.expand_path(config_files[script])
 
     options = Marshal.load(Marshal.dump(default_options[script]))
 
-    if File.exist?(config_file)
-      options = YAML::load_file(config_file)
-    end
+    options = YAML.load_file(config_file) if File.exist?(config_file)
 
     brk = false
     until brk
-      Ask::ask('Which config option do you want?', Ask::hash_to_options(options, [:Save, :'Up a level', :Exit])) { |opt|
-        if opt == :Exit
-          exit(0)
-        elsif opt == :'Up a level'
+      Ask.ask('Which config option do you want?', Ask.hash_to_options(options, [:Save, :'Up a level', :Exit])) { |opt|
+        exit(0) if opt == :Exit
+        if opt == :'Up a level'
           brk = true
         elsif opt == :Save
           IO.write(config_file, options.to_yaml)
@@ -73,13 +91,12 @@ while true
         else
           brk2 = false
           until brk2
-            Ask::ask("Configuring: #{opt.to_s}\nWhich color do you want to set?", Ask::hash_to_options(options[opt], [:'Up a level', :Exit])) { |which|
-              if which == :Exit
-                exit(0)
-              elsif which == :'Up a level'
+            Ask.ask("Configuring: #{opt}\nWhich color do you want to set?", Ask.hash_to_options(options[opt], [:'Up a level', :Exit])) { |which|
+              exit(0) if which == :Exit
+              if which == :'Up a level'
                 brk2 = true
               else
-                Ask::ask("Configuring: #{opt.to_s} -> #{which.to_s} (currently: #{options[opt][which].to_s}) (default: #{default_options[script][opt][which].to_s})\nWhich color do you want?", colors + [:Default, :Cancel]) { |color|
+                Ask.ask("Configuring: #{opt} -> #{which} (currently: #{options[opt][which]}) (default: #{default_options[script][opt][which]})\nWhich color do you want?", colors + [:Default, :Cancel]) { |color|
                   unless color == :Cancel
                     options[opt][which] = (color == :Default) ? default_options[script][opt][which] : color
                   end
